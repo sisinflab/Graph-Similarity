@@ -19,6 +19,8 @@ from elliot.recommender.base_recommender_model import init_charger
 from elliot.recommender.recommender_utils_mixin import RecMixin
 from .NGCFModel import NGCFModel
 
+import math
+
 
 class NGCF(RecMixin, BaseRecommenderModel):
     r"""
@@ -108,6 +110,10 @@ class NGCF(RecMixin, BaseRecommenderModel):
                 for batch in self._sampler.step(self._data.transactions, self._batch_size):
                     steps += 1
                     loss += self._model.train_step(batch)
+
+                    if math.isnan(loss) or math.isinf(loss) or (not loss):
+                        break
+
                     t.set_postfix({'loss': f'{loss / steps:.5f}'})
                     t.update()
 

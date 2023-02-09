@@ -9,6 +9,8 @@ from elliot.recommender.base_recommender_model import init_charger
 from elliot.recommender.recommender_utils_mixin import RecMixin
 from .UltraGCNModel import UltraGCNModel
 
+import math
+
 
 class UltraGCN(RecMixin, BaseRecommenderModel):
     r"""
@@ -124,6 +126,10 @@ class UltraGCN(RecMixin, BaseRecommenderModel):
                     loss += self._model.train_step((torch.from_numpy(users),
                                                     torch.from_numpy(pos_items),
                                                     neg_items))
+
+                    if math.isnan(loss) or math.isinf(loss) or (not loss):
+                        break
+
                     t.set_postfix({'loss': f'{loss / steps:.5f}'})
                     t.update()
 

@@ -45,6 +45,11 @@ experiment:
       modalities: ('visual', 'textual')
       loader: ('VisualAttribute','TextualAttribute')
       seed: 123
+      early_stopping:
+        patience: 10
+        mode: auto
+        monitor: Recall@20
+        verbose: True
     external.UUII:
       meta:
         hyper_opt_alg: grid
@@ -63,3 +68,8 @@ experiment:
       sim: [dot, min, max, global]
       loader: ('SentimentInteractionsTextualAttributesUUII',)
       seed: 123
+      early_stopping:
+        patience: 10
+        mode: auto
+        monitor: Recall@20
+        verbose: True

@@ -12,6 +12,8 @@ from .LightGCNModel import LightGCNModel
 
 from torch_sparse import SparseTensor
 
+import math
+
 
 class LightGCN(RecMixin, BaseRecommenderModel):
     r"""
@@ -97,6 +99,10 @@ class LightGCN(RecMixin, BaseRecommenderModel):
                 for batch in self._sampler.step(self._data.transactions, self._batch_size):
                     steps += 1
                     loss += self._model.train_step(batch)
+
+                    if math.isnan(loss) or math.isinf(loss) or (not loss):
+                        break
+
                     t.set_postfix({'loss': f'{loss / steps:.5f}'})
                     t.update()
 
