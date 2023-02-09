@@ -1,0 +1,65 @@
+experiment:
+  backend: [pytorch]
+  data_config:
+    strategy: fixed
+    train_path: ../data/{0}/5-core/train.txt
+    validation_path: ../data/{0}/5-core/val.txt
+    test_path: ../data/{0}/5-core/test.txt
+    side_information:
+      - dataloader: SentimentInteractionsTextualAttributesUUII
+        ii_dot: ../data/{0}/5-core/ii_dot_sparse.npz
+        ii_max: ../data/{0}/5-core/ii_max_sparse.npz
+        ii_min: ../data/{0}/5-core/ii_min_sparse.npz
+        ii_global: ../data/{0}/5-core/ii_global_sparse.npz
+      - dataloader: VisualAttribute
+        visual_features: ../data/{0}/image_feat
+      - dataloader: TextualAttribute
+        textual_features: ../data/{0}/text_feat
+  dataset: baby
+  top_k: 50
+  evaluation:
+    cutoffs: [ 10, 20, 50 ]
+    simple_metrics: [Recall]
+  gpu: 0
+  external_models_path: ../external/models/__init__.py
+  models:
+    external.LATTICE:
+      meta:
+        hyper_opt_alg: grid
+        verbose: True
+        save_weights: False
+        save_recs: False
+        validation_rate: 10
+        validation_metric: Recall@20
+        restore: False
+      epochs: 200
+      batch_size: 1024
+      factors: 64
+      lr: [ 0.0001, 0.0005, 0.001, 0.005, 0.01 ]
+      l_w: [ 1e-5, 1e-2 ]
+      n_layers: 1
+      n_ui_layers: 2
+      top_k: 20
+      l_m: 0.7
+      factors_multimod: 64
+      modalities: ('visual', 'textual')
+      loader: ('VisualAttribute','TextualAttribute')
+      seed: 123
+    external.UUII:
+      meta:
+        hyper_opt_alg: grid
+        verbose: True
+        save_weights: False
+        save_recs: False
+        validation_rate: 10
+        validation_metric: Recall@20
+        restore: False
+      epochs: 200
+      batch_size: 1024
+      factors: 64
+      lr: [ 0.0001, 0.0005, 0.001, 0.005, 0.01 ]
+      l_w: [ 1e-5, 1e-2 ]
+      n_ii_layers: [1, 2, 3, 4]
+      sim: [dot, min, max, global]
+      loader: ('SentimentInteractionsTextualAttributesUUII',)
+      seed: 123
