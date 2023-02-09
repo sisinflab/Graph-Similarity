@@ -29,7 +29,7 @@ experiment:
         verbose: True
         save_weights: False
         save_recs: False
-        validation_rate: 10
+        validation_rate: 1
         validation_metric: Recall@20
         restore: False
       epochs: 200
@@ -56,7 +56,7 @@ experiment:
         verbose: True
         save_weights: False
         save_recs: False
-        validation_rate: 10
+        validation_rate: 1
         validation_metric: Recall@20
         restore: False
       epochs: 200
