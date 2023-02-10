@@ -7,10 +7,10 @@ experiment:
     test_path: ../data/{0}/5-core/test.txt
     side_information:
       - dataloader: SentimentInteractionsTextualAttributesUUII
-        ii_dot: ../data/{0}/5-core/ii_dot_sparse.npz
-        ii_max: ../data/{0}/5-core/ii_max_sparse.npz
-        ii_min: ../data/{0}/5-core/ii_min_sparse.npz
-        ii_global: ../data/{0}/5-core/ii_global_sparse.npz
+        ii_dot: ../data/{0}/5-core/ii_dot_10.npz
+        ii_max: ../data/{0}/5-core/ii_max_10.npz
+        ii_min: ../data/{0}/5-core/ii_min_10.npz
+        ii_global: ../data/{0}/5-core/ii_global_10.npz
   dataset: baby
   top_k: 50
   evaluation:
