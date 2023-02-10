@@ -1,7 +1,5 @@
 from abc import ABC
 
-from .UUIILayer import UUIILayer
-
 import torch
 import torch_geometric
 from torch_geometric.nn import LGConv
@@ -67,7 +65,7 @@ class UUIIModel(torch.nn.Module, ABC):
         # graph convolutional network for item-item graph
         propagation_network_ii_list = []
         for layer in range(self.n_ii_layers):
-            propagation_network_ii_list.append((UUIILayer(), 'x, edge_index -> x'))
+            propagation_network_ii_list.append((LGConv(normalize=False), 'x, edge_index -> x'))
         self.propagation_network_ii = torch_geometric.nn.Sequential('x, edge_index', propagation_network_ii_list)
         self.propagation_network_ii.to(self.device)
 

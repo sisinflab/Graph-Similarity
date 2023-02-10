@@ -32,7 +32,7 @@ private_to_public_items = {idx: i for i, idx in public_to_private_items.items()}
 rows = [public_to_private_users[u] for u in train_reviews[0].tolist()]
 cols = [public_to_private_items[i] for i in train_reviews[1].tolist()]
 
-R = scipy.sparse.csr_matrix(([1] * len(rows), (rows, cols)), shape=(initial_num_users, initial_num_items))
+R = scipy.sparse.coo_matrix(([1] * len(rows), (rows, cols)), shape=(initial_num_users, initial_num_items))
 R_U = R @ R.T
 user_rows, user_cols = R_U.nonzero()
 user_values = R_U.data
@@ -79,38 +79,38 @@ for idx, (u1, u2, value) in enumerate(zip(user_rows, user_cols, user_values)):
             max_values.append(sum_ * clust_coeff_max)
             global_values.append(sum_ * global_coeff)
 
-R_U = scipy.sparse.csr_matrix((dot_values, (user_rows_sim, user_cols_sim)),
+R_U = scipy.sparse.coo_matrix((dot_values, (user_rows_sim, user_cols_sim)),
                               shape=(initial_num_users, initial_num_users)).todense()
 indices_one = np.argsort(-R_U)[:, :top_k]
 indices_zero = np.argsort(-R_U)[:, top_k:]
 R_U[np.arange(R_U.shape[0])[:, None], indices_one] = 1.0
 R_U[np.arange(R_U.shape[0])[:, None], indices_zero] = 0.0
-R_U = scipy.sparse.csr_matrix(R_U)
+R_U = scipy.sparse.coo_matrix(R_U)
 scipy.sparse.save_npz(f'./data/{dataset}/5-core/uu_dot_sparse.npz', R_U)
 
-R_U = scipy.sparse.csr_matrix((min_values, (user_rows_sim, user_cols_sim)),
+R_U = scipy.sparse.coo_matrix((min_values, (user_rows_sim, user_cols_sim)),
                               shape=(initial_num_users, initial_num_users)).todense()
 indices_one = np.argsort(-R_U)[:, :top_k]
 indices_zero = np.argsort(-R_U)[:, top_k:]
 R_U[np.arange(R_U.shape[0])[:, None], indices_one] = 1.0
 R_U[np.arange(R_U.shape[0])[:, None], indices_zero] = 0.0
-R_U = scipy.sparse.csr_matrix(R_U)
+R_U = scipy.sparse.coo_matrix(R_U)
 scipy.sparse.save_npz(f'./data/{dataset}/5-core/uu_min_sparse.npz', R_U)
 
-R_U = scipy.sparse.csr_matrix((max_values, (user_rows_sim, user_cols_sim)),
+R_U = scipy.sparse.coo_matrix((max_values, (user_rows_sim, user_cols_sim)),
                               shape=(initial_num_users, initial_num_users)).todense()
 indices_one = np.argsort(-R_U)[:, :top_k]
 indices_zero = np.argsort(-R_U)[:, top_k:]
 R_U[np.arange(R_U.shape[0])[:, None], indices_one] = 1.0
 R_U[np.arange(R_U.shape[0])[:, None], indices_zero] = 0.0
-R_U = scipy.sparse.csr_matrix(R_U)
+R_U = scipy.sparse.coo_matrix(R_U)
 scipy.sparse.save_npz(f'./data/{dataset}/5-core/uu_max_sparse.npz', R_U)
 
-R_U = scipy.sparse.csr_matrix((global_values, (user_rows_sim, user_cols_sim)),
+R_U = scipy.sparse.coo_matrix((global_values, (user_rows_sim, user_cols_sim)),
                               shape=(initial_num_users, initial_num_users)).todense()
 indices_one = np.argsort(-R_U)[:, :top_k]
 indices_zero = np.argsort(-R_U)[:, top_k:]
 R_U[np.arange(R_U.shape[0])[:, None], indices_one] = 1.0
 R_U[np.arange(R_U.shape[0])[:, None], indices_zero] = 0.0
-R_U = scipy.sparse.csr_matrix(R_U)
+R_U = scipy.sparse.coo_matrix(R_U)
 scipy.sparse.save_npz(f'./data/{dataset}/5-core/uu_global_sparse.npz', R_U)
