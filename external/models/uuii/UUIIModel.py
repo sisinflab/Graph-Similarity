@@ -4,9 +4,10 @@ from .UUIILayer import UUIILayer
 
 import torch
 import torch_geometric
+from torch_geometric.nn import LGConv
 import numpy as np
 import random
-from torch_sparse import SparseTensor, mul, sum
+from torch_sparse import mul, sum
 
 
 class UUIIModel(torch.nn.Module, ABC):
@@ -14,10 +15,12 @@ class UUIIModel(torch.nn.Module, ABC):
                  num_users,
                  num_items,
                  num_ii_layers,
+                 num_ui_layers,
                  learning_rate,
                  embed_k,
                  l_w,
                  sim_ii,
+                 adj,
                  random_seed,
                  name="UUII",
                  **kwargs
@@ -40,6 +43,7 @@ class UUIIModel(torch.nn.Module, ABC):
         self.learning_rate = learning_rate
         self.l_w = l_w
         self.n_ii_layers = num_ii_layers
+        self.n_ui_layers = num_ui_layers
 
         # collaborative embeddings
         self.Gu = torch.nn.Embedding(self.num_users, self.embed_k)
@@ -57,12 +61,22 @@ class UUIIModel(torch.nn.Module, ABC):
         # item-item graph
         self.sim_ii = self.compute_normalized_laplacian(sim_ii)
 
+        # user-item graph
+        self.adj = adj
+
         # graph convolutional network for item-item graph
         propagation_network_ii_list = []
         for layer in range(self.n_ii_layers):
             propagation_network_ii_list.append((UUIILayer(), 'x, edge_index -> x'))
         self.propagation_network_ii = torch_geometric.nn.Sequential('x, edge_index', propagation_network_ii_list)
         self.propagation_network_ii.to(self.device)
+
+        # graph convolutional network for user-item graph
+        propagation_network_ui_list = []
+        for layer in range(self.n_ui_layers):
+            propagation_network_ui_list.append((LGConv(normalize=False), 'x, edge_index -> x'))
+        self.propagation_network_ui = torch_geometric.nn.Sequential('x, edge_index', propagation_network_ui_list)
+        self.propagation_network_ui.to(self.device)
 
         self.softplus = torch.nn.Softplus()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -77,44 +91,49 @@ class UUIIModel(torch.nn.Module, ABC):
         return adj_t
 
     def propagate_embeddings(self):
-        item_embeddings = self.Gis.weight.to(self.device)
+        gis = self.Gis.weight.to(self.device)
         for layer in range(self.n_ii_layers):
-            item_embeddings = list(self.propagation_network_ii.children())[layer](
-                item_embeddings.to(self.device),
+            gis = list(self.propagation_network_ii.children())[layer](
+                gis.to(self.device),
                 self.sim_ii.to(self.device))
-        return item_embeddings
+
+        ego_embeddings = torch.cat((self.Gu.weight.to(self.device), self.Gi.weight.to(self.device)), 0)
+        all_embeddings = [ego_embeddings]
+
+        for layer in range(self.n_ui_layers):
+            all_embeddings += [torch.nn.functional.normalize(list(
+                self.propagation_network_recommend.children()
+            )[layer](all_embeddings[layer].to(self.device), self.adj.to(self.device)), p=2, dim=1)]
+
+        all_embeddings = torch.stack(all_embeddings, dim=1)
+        all_embeddings = all_embeddings.mean(dim=1, keepdim=False)
+        gu, gi = torch.split(all_embeddings, [self.num_users, self.num_items], 0)
+
+        return gu, gi + torch.nn.functional.normalize(gis.to(self.device), p=2, dim=1)
 
     def forward(self, inputs, **kwargs):
-        gu, gi, gis = inputs
+        gu, gi = inputs
         gamma_u = torch.squeeze(gu).to(self.device)
         gamma_i = torch.squeeze(gi).to(self.device)
-        gamma_i_s = torch.squeeze(gis).to(self.device)
 
-        gamma_i_final = gamma_i + torch.nn.functional.normalize(gamma_i_s, 2)
+        xui = torch.sum(gamma_u * gamma_i, 1)
 
-        xui = torch.sum(gamma_u * gamma_i_final, 1)
+        return xui, gamma_u, gamma_i
 
-        return xui, gamma_u, gamma_i, gamma_i_s
-
-    def predict(self, start, end, gis, **kwargs):
-        gi = self.Gi.weight + torch.nn.functional.normalize(gis, 2)
-        return torch.matmul(self.Gu.weight[start:end].to(self.device), torch.transpose(gi.to(self.device), 0, 1))
+    def predict(self, gu, gi, **kwargs):
+        return torch.matmul(gu.to(self.device), torch.transpose(gi.to(self.device), 0, 1))
 
     def train_step(self, batch):
-        gis = self.propagate_embeddings()
+        gu, gi = self.propagate_embeddings()
         user, pos, neg = batch
-        xu_pos, gamma_u, gamma_i_pos, gamma_i_s_pos = self.forward(inputs=(self.Gu.weight[user[:, 0]],
-                                                                           self.Gi.weight[pos[:, 0]], gis[pos[:, 0]]))
-        xu_neg, _, gamma_i_neg, gamma_i_s_neg = self.forward(inputs=(self.Gu.weight[user[:, 0]],
-                                                                     self.Gi.weight[neg[:, 0]], gis[neg[:, 0]]))
+        xu_pos, gamma_u, gamma_i_pos = self.forward(inputs=(gu[user[:, 0]], gi[pos[:, 0]]))
+        xu_neg, _, gamma_i_neg = self.forward(inputs=(gu[user[:, 0]], gi[neg[:, 0]]))
 
         difference = torch.clamp(xu_pos - xu_neg, -80.0, 1e8)
         loss = torch.mean(torch.nn.functional.softplus(-difference))
         reg_loss = self.l_w * (1 / 2) * (gamma_u.norm(2).pow(2) +
                                          gamma_i_pos.norm(2).pow(2) +
-                                         gamma_i_neg.norm(2).pow(2) +
-                                         gamma_i_s_pos.norm(2).pow(2) +
-                                         gamma_i_s_neg.norm(2).pow(2)) / user.shape[0]
+                                         gamma_i_neg.norm(2).pow(2)) / user.shape[0]
         loss += reg_loss
 
         self.optimizer.zero_grad()

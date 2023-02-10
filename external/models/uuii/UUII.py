@@ -11,6 +11,7 @@ from torch_sparse import SparseTensor
 from .UUIIModel import UUIIModel
 
 import math
+import numpy as np
 
 
 class UUII(RecMixin, BaseRecommenderModel):
@@ -38,6 +39,7 @@ class UUII(RecMixin, BaseRecommenderModel):
             ("_factors", "factors", "factors", 64, int, None),
             ("_l_w", "l_w", "l_w", 0.01, float, None),
             ("_n_ii_layers", "n_ii_layers", "n_ii_layers", 2, int, None),
+            ("_n_ui_layers", "n_ui_layers", "n_ui_layers", 2, int, None),
             ("_sim", "sim", "sim", 'dot', str, None),
             ("_loader", "loader", "loader", 'SentimentInteractionsTextualAttributesUUII', str, None)
         ]
@@ -52,14 +54,25 @@ class UUII(RecMixin, BaseRecommenderModel):
         rows, cols = ii_sparse.nonzero()
         sim_ii = SparseTensor(row=torch.tensor(rows, dtype=torch.int64), col=torch.tensor(cols, dtype=torch.int64))
 
+        row, col = data.sp_i_train.nonzero()
+        col = [c + self._num_users for c in col]
+        edge_index = np.array([row, col])
+        edge_index = torch.tensor(edge_index, dtype=torch.int64)
+        adj = SparseTensor(row=torch.cat([edge_index[0], edge_index[1]], dim=0),
+                           col=torch.cat([edge_index[1], edge_index[0]], dim=0),
+                           sparse_sizes=(self._num_users + self._num_items,
+                                         self._num_users + self._num_items))
+
         self._model = UUIIModel(
             num_users=self._num_users,
             num_items=self._num_items,
             num_ii_layers=self._n_ii_layers,
+            num_ui_layers=self._n_ui_layers,
             learning_rate=self._learning_rate,
             embed_k=self._factors,
             l_w=self._l_w,
             sim_ii=sim_ii,
+            adj=adj,
             random_seed=self._seed
         )
 
@@ -95,10 +108,10 @@ class UUII(RecMixin, BaseRecommenderModel):
         predictions_top_k_val = {}
         self._model.eval()
         with torch.no_grad():
-            gis = self._model.propagate_embeddings()
+            gu, gi = self._model.propagate_embeddings()
             for index, offset in enumerate(range(0, self._num_users, self._batch_size)):
                 offset_stop = min(offset + self._batch_size, self._num_users)
-                predictions = self._model.predict(offset, offset_stop, gis)
+                predictions = self._model.predict(gu[offset:offset_stop], gi)
                 recs_val, recs_test = self.process_protocol(k, predictions, offset, offset_stop)
                 predictions_top_k_val.update(recs_val)
                 predictions_top_k_test.update(recs_test)
