@@ -102,7 +102,7 @@ class UUIIModel(torch.nn.Module, ABC):
 
         for layer in range(self.n_ui_layers):
             all_embeddings += [torch.nn.functional.normalize(list(
-                self.propagation_network_recommend.children()
+                self.propagation_network_ui.children()
             )[layer](all_embeddings[layer].to(self.device), self.adj.to(self.device)), p=2, dim=1)]
 
         all_embeddings = torch.stack(all_embeddings, dim=1)
