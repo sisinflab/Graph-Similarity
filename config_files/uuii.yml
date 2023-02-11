@@ -12,7 +12,7 @@ experiment:
         ii_min: ../data/{0}/5-core/ii_min_10.npz
         ii_global: ../data/{0}/5-core/ii_global_10.npz
   dataset: baby
-  top_k: 50
+  top_k: 50cd
   evaluation:
     cutoffs: [ 10, 20, 50 ]
     simple_metrics: [Recall]

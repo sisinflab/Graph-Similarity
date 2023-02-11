@@ -5,32 +5,37 @@ import os
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def build_items_neighbour(train):
-    iu_dict = {i: train[train[1] == i][0].tolist() for i in train[1].unique().tolist()}
+def build_items_neighbour(df):
+    iu_dict = {i: df[df[1] == i][0].tolist() for i in df[1].unique().tolist()}
     return iu_dict
+
+
+def dataframe_to_dict(data):
+    ratings = data.set_index(0)[[1, 2]].apply(lambda x: (x[1], float(x[2])), 1) \
+        .groupby(level=0).agg(lambda x: dict(x.values)).to_dict()
+    return ratings
 
 
 dataset = 'baby'
 top_k = 10
 
-train_reviews = pd.read_csv(f'./data/{dataset}/5-core/train_reviews.txt', sep='\t', header=None)
-item_user_dict = build_items_neighbour(train_reviews)
+train = pd.read_csv(f'./data/{dataset}/5-core/train.txt', sep='\t', header=None)
+item_user_dict = build_items_neighbour(train)
 
-initial_users = train_reviews[0].unique().tolist()
-initial_items = train_reviews[1].unique().tolist()
-initial_num_users = len(initial_users)
-initial_num_items = len(initial_items)
+train_dict = dataframe_to_dict(train)
+users = list(train_dict.keys())
+items = list({k for a in train_dict.values() for k in a.keys()})
 
-# public --> private reindexing
-public_to_private_users = {u: idx for idx, u in enumerate(initial_users)}
-public_to_private_items = {i: idx for idx, i in enumerate(initial_items)}
+initial_num_users = len(train[0].nunique())
+initial_num_items = len(train[1].nunique())
 
-# private --> public reindexing
-private_to_public_users = {idx: u for u, idx in public_to_private_users.items()}
-private_to_public_items = {idx: i for i, idx in public_to_private_items.items()}
+private_to_public_users = {p: u for p, u in enumerate(users)}
+public_to_private_users = {v: k for k, v in private_to_public_users.items()}
+private_to_public_items = {p: i for p, i in enumerate(items)}
+public_to_private_items = {v: k for k, v in private_to_public_items.items()}
 
-rows = [public_to_private_users[u] for u in train_reviews[0].tolist()]
-cols = [public_to_private_items[i] for i in train_reviews[1].tolist()]
+rows = [public_to_private_users[u] for u in train[0].tolist()]
+cols = [public_to_private_items[i] for i in train[1].tolist()]
 
 R = scipy.sparse.coo_matrix(([1] * len(rows), (rows, cols)), shape=(initial_num_users, initial_num_items))
 R_I = R.T @ R
