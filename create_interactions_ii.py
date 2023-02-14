@@ -26,8 +26,8 @@ train_dict = dataframe_to_dict(train)
 users = list(train_dict.keys())
 items = list({k for a in train_dict.values() for k in a.keys()})
 
-initial_num_users = len(train[0].nunique())
-initial_num_items = len(train[1].nunique())
+initial_num_users = train[0].nunique()
+initial_num_items = train[1].nunique()
 
 private_to_public_users = {p: u for p, u in enumerate(users)}
 public_to_private_users = {v: k for k, v in private_to_public_users.items()}
@@ -70,9 +70,9 @@ for idx, (i1, i2, value) in enumerate(zip(item_rows, item_cols, item_values)):
         sum_ = 0
         for user in co_occurred_users:
             left = np.load(os.path.join(f'./data/{dataset}/reviews/',
-                                        str(private_to_public_items[i1]) + '_' + str(user)) + '.npy')
+                                        str(int(private_to_public_items[i1])) + '_' + str(user)) + '.npy')
             right = np.load(os.path.join(f'./data/{dataset}/reviews/',
-                                         str(private_to_public_items[i2]) + '_' + str(user)) + '.npy')
+                                         str(int(private_to_public_items[i2])) + '_' + str(user)) + '.npy')
             dist = cosine_similarity(left, right)[0, 0]
             if dist > 0.0:
                 sum_ += dist

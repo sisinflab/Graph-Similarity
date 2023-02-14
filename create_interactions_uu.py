@@ -70,9 +70,9 @@ for idx, (u1, u2, value) in enumerate(zip(user_rows, user_cols, user_values)):
         sum_ = 0
         for item in co_occurred_items:
             left = np.load(os.path.join(f'./data/{dataset}/reviews/',
-                                        str(item) + '_' + str(private_to_public_users[u1])) + '.npy')
+                                        str(item) + '_' + str(int(private_to_public_users[u1]))) + '.npy')
             right = np.load(os.path.join(f'./data/{dataset}/reviews/',
-                                         str(item) + '_' + str(private_to_public_users[u2])) + '.npy')
+                                         str(item) + '_' + str(int(private_to_public_users[u2]))) + '.npy')
             dist = cosine_similarity(left, right)[0, 0]
             if dist > 0.0:
                 sum_ += dist
