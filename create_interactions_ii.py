@@ -16,10 +16,10 @@ def dataframe_to_dict(data):
     return ratings
 
 
-dataset = 'baby'
+dataset = 'digital_music'
 top_k = 10
 
-train = pd.read_csv(f'./data/{dataset}/5-core/train.txt', sep='\t', header=None)
+train = pd.read_csv(f'./data/{dataset}/Train.tsv', sep='\t', header=None)
 item_user_dict = build_items_neighbour(train)
 
 train_dict = dataframe_to_dict(train)
@@ -91,7 +91,7 @@ indices_zero = np.argsort(-R_I)[:, top_k:]
 R_I[np.arange(R_I.shape[0])[:, None], indices_one] = 1.0
 R_I[np.arange(R_I.shape[0])[:, None], indices_zero] = 0.0
 R_I = scipy.sparse.coo_matrix(R_I)
-scipy.sparse.save_npz(f'./data/{dataset}/5-core/ii_dot_{top_k}.npz', R_I)
+scipy.sparse.save_npz(f'./data/{dataset}/ii_dot_{top_k}.npz', R_I)
 
 R_I = scipy.sparse.coo_matrix((min_values, (item_rows_sim, item_cols_sim)),
                               shape=(initial_num_items, initial_num_items)).todense()
@@ -100,7 +100,7 @@ indices_zero = np.argsort(-R_I)[:, top_k:]
 R_I[np.arange(R_I.shape[0])[:, None], indices_one] = 1.0
 R_I[np.arange(R_I.shape[0])[:, None], indices_zero] = 0.0
 R_I = scipy.sparse.coo_matrix(R_I)
-scipy.sparse.save_npz(f'./data/{dataset}/5-core/ii_min_{top_k}.npz', R_I)
+scipy.sparse.save_npz(f'./data/{dataset}/ii_min_{top_k}.npz', R_I)
 
 R_I = scipy.sparse.coo_matrix((max_values, (item_rows_sim, item_cols_sim)),
                               shape=(initial_num_items, initial_num_items)).todense()
@@ -109,7 +109,7 @@ indices_zero = np.argsort(-R_I)[:, top_k:]
 R_I[np.arange(R_I.shape[0])[:, None], indices_one] = 1.0
 R_I[np.arange(R_I.shape[0])[:, None], indices_zero] = 0.0
 R_I = scipy.sparse.coo_matrix(R_I)
-scipy.sparse.save_npz(f'./data/{dataset}/5-core/ii_max_{top_k}.npz', R_I)
+scipy.sparse.save_npz(f'./data/{dataset}/ii_max_{top_k}.npz', R_I)
 
 R_I = scipy.sparse.coo_matrix((global_values, (item_rows_sim, item_cols_sim)),
                               shape=(initial_num_items, initial_num_items)).todense()
@@ -118,4 +118,4 @@ indices_zero = np.argsort(-R_I)[:, top_k:]
 R_I[np.arange(R_I.shape[0])[:, None], indices_one] = 1.0
 R_I[np.arange(R_I.shape[0])[:, None], indices_zero] = 0.0
 R_I = scipy.sparse.coo_matrix(R_I)
-scipy.sparse.save_npz(f'./data/{dataset}/5-core/ii_global_{top_k}.npz', R_I)
+scipy.sparse.save_npz(f'./data/{dataset}/ii_global_{top_k}.npz', R_I)
